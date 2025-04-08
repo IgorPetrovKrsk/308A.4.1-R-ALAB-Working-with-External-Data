@@ -40,9 +40,10 @@ export function start() {
     "#carouselExampleControls"
   );
   if (window.matchMedia("(min-width: 768px)").matches) {
-    const carousel = new bootstrap.Carousel(multipleCardCarousel, {
-      interval: false
-    });
+    // carousel it not used in the code, I don't know why it's there so because it trows an error I commented it out
+    // const carousel = new bootstrap.Carousel(multipleCardCarousel, {
+    //   interval: false
+    // });
     const carouselWidth = $(".carousel-inner")[0].scrollWidth;
     const cardWidth = $(".carousel-item").width();
     let scrollPosition = 0;

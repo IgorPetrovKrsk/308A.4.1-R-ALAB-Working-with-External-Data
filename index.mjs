@@ -1,4 +1,4 @@
-// import * as Carousel from "./Carousel.js";
+import * as Carousel from "./Carousel.mjs";
 // import axios from "axios";
 
 // The breed selection input element.
@@ -13,6 +13,7 @@ const getFavouritesBtn = document.getElementById("getFavouritesBtn");
 // Step 0: Store your API key here for reference and easy access.
 const API_KEY = "live_UiYOtzJxYjaOcMznmcDsCQWt40ZtbTnzJfK79kFocCstrGVSPTv8rIMbVsmsuNz3";
 
+let breads = []; // Array to store information about the breeds
 /**
  * 1. Create an async function "initialLoad" that does the following:
  * - Retrieve a list of breeds from the cat API using fetch().
@@ -22,20 +23,51 @@ const API_KEY = "live_UiYOtzJxYjaOcMznmcDsCQWt40ZtbTnzJfK79kFocCstrGVSPTv8rIMbVs
  * This function should execute immediately.
  */
 
-async function initialLoad(){
-try {
-    let responce =await fetch(`https://api.thecatapi.com/v1/breeds`);
-    let data = await responce.json();
-    data.forEach(it => {
-        let newOption = document.createElement("option");
-        newOption.value = it.id;
-        newOption.textContent = it.name;
-        breedSelect.appendChild(newOption);
+breedSelect.addEventListener(`change`, breedSelectEvent);
+
+function populateCarousel(breadImgs, breedObj) {
+    Carousel.clear();
+    infoDump.innerHTML = ``;
+    breadImgs.forEach(it => {
+        let newCarouselItem = Carousel.createCarouselItem(it.url, `Image of ${breedObj.name} cat`, it.id);
+        Carousel.appendCarousel(newCarouselItem);
     });
-} catch (error) {
-    console.error(`Error geting breads: ${error}`);
+    infoDump.innerHTML = `<h2>${breedObj.name}</h2><p>${breedObj.description}</p>`;
+    Carousel.start();
 }
+
+async function fetchBreed(bread) {
+    let response = await fetch(`https://api.thecatapi.com/v1/images/search?limit=20&breed_id=${bread.id}`,
+        {
+            method: `GET`,
+            headers: {
+                "x-api-key": API_KEY                
+            }
+        });
+    let breadImgs = await response.json();
+    populateCarousel(breadImgs, bread);
 }
+
+function breedSelectEvent(ev) {
+    //console.log(`Selected breed ${ev.target.value}`);    
+    fetchBreed(breads.find(it => it.id === ev.target.value));
+}
+
+(async function initialLoadWithFetch() { //iife
+    try {
+        let responce = await fetch(`https://api.thecatapi.com/v1/breeds`);
+        breads = await responce.json();
+        breads.forEach(it => {
+            let newOption = document.createElement("option");
+            newOption.value = it.id;
+            newOption.textContent = it.name;
+            breedSelect.appendChild(newOption);
+        });
+        fetchBreed(breads[0]); // fetching first element and population carousel
+    } catch (error) {
+        console.error(`Error geting breads: ${error}`);
+    }
+}) (); 
 
 /**
  * 2. Create an event handler for breedSelect that does the following:
@@ -104,7 +136,7 @@ try {
  * - You can call this function by clicking on the heart at the top right of any image.
  */
 export async function favourite(imgId) {
-  // your code here
+    // your code here
 }
 
 /**
@@ -126,4 +158,4 @@ export async function favourite(imgId) {
  */
 
 
-initialLoad();
+//initialLoadWithFetch();
