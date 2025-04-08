@@ -1,7 +1,8 @@
 //import * as bootstrap from "bootstrap";
 import * as bootstrap from "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js";
 
-import { favourite } from "./index.mjs";
+// import { favourite } from "./index.mjs";
+ import { favourite } from "./indexAxios.mjs";
 
 export function createCarouselItem(imgSrc, imgAlt, imgId) {
   const template = document.querySelector("#carouselItemTemplate");
