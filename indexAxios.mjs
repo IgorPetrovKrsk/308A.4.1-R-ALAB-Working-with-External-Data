@@ -14,6 +14,8 @@ const getFavouritesBtn = document.getElementById("getFavouritesBtn");
 const API_KEY = "live_UiYOtzJxYjaOcMznmcDsCQWt40ZtbTnzJfK79kFocCstrGVSPTv8rIMbVsmsuNz3";
 
 let breads = []; // Array to store information about the breeds
+let requestStartTime = null;
+
 /**
  * 1. Create an async function "initialLoad" that does the following:
  * - Retrieve a list of breeds from the cat API using fetch().
@@ -40,7 +42,7 @@ async function axiosBreed(bread) {
     let breadImgs = await axios.get(`images/search`,
         {
             headers: {
-                "x-api-key": API_KEY                
+                "x-api-key": API_KEY
             },
             params: {
                 limit: 5,
@@ -50,6 +52,20 @@ async function axiosBreed(bread) {
     );
     populateCarousel(breadImgs.data, bread);
 }
+
+(function initializeInterceptors() {
+    //adiing interceptors 
+    axios.interceptors.request.use(it => {
+        requestStartTime = Date.now();
+        console.log(`Request started at ${Date(requestStartTime)}`);
+        return it;
+    })
+    axios.interceptors.response.use(it => {
+        let requestEndTime = Date.now();
+        console.log(`Response recieved at ${Date(requestEndTime)} and query time is ${requestEndTime - requestStartTime} ms`);        
+        return it;
+    })
+})();
 
 function breedSelectEvent(ev) {
     axiosBreed(breads.find(it => it.id === ev.target.value));
@@ -61,22 +77,26 @@ function breedSelectEvent(ev) {
         let response = await axios({
             method: "GET",
             url: "breeds"
-        });        
+        });
         if (response.status === 200) {
-            breads = response.data;            
+            breads = response.data;
         } else {
             throw new Error("Failed to fetch breeds");
         }
         breads.forEach(it => {
-             let newOption = document.createElement("option");
-             newOption.value = it.id;
-             newOption.textContent = it.name;
-             breedSelect.appendChild(newOption);
+            let newOption = document.createElement("option");
+            newOption.value = it.id;
+            newOption.textContent = it.name;
+            breedSelect.appendChild(newOption);
         });
         axiosBreed(breads[0]); // fetching first element and population carousel
     } catch (error) {
         console.error(`Error geting breads: ${error}`);
     }
+
+    
+
+
 })();
 
 /**
