@@ -47,10 +47,15 @@ async function axiosBreed(bread) {
             params: {
                 limit: 5,
                 breed_id: bread.id
-            }
+            },
+            onDownloadProgress : updateProgress
         }
     );
     populateCarousel(breadImgs.data, bread);
+}
+
+function updateProgress(progressEvent) {
+    progressBar.style.width = `${progressEvent.progress*100}%`;
 }
 
 (function initializeInterceptors() {
@@ -58,6 +63,7 @@ async function axiosBreed(bread) {
     axios.interceptors.request.use(it => {
         requestStartTime = Date.now();
         console.log(`Request started at ${Date(requestStartTime)}`);
+        progressBar.style.width = `0%`;
         return it;
     })
     axios.interceptors.response.use(it => {
@@ -76,7 +82,8 @@ function breedSelectEvent(ev) {
         axios.defaults.baseURL = "https://api.thecatapi.com/v1/";
         let response = await axios({
             method: "GET",
-            url: "breeds"
+            url: "breeds",
+            onDownloadProgress : updateProgress
         });
         if (response.status === 200) {
             breads = response.data;
