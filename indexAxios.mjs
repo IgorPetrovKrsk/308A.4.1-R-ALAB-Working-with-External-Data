@@ -89,23 +89,30 @@ getFavouritesBtn.addEventListener(`click`, favoritesSelectEvent);
 function populateCarousel(breadImgs, breedObj) {
     Carousel.clear();
     infoDump.innerHTML = ``;
-    breadImgs.forEach(it => {
-        let url = null;
-        let id = null;
-        if (it.url) {
-            url = it.url;
-            id = it.id;
-        } else {
-            url = it.image.url;
-            id = it.image.id;        
-        }
-        let newCarouselItem = Carousel.createCarouselItem(url, `Image of ${breedObj.name} cat`, id);
-        if (favorites.find(it => it.image.id === id)){ //this is a favorite image
-            let favBtn = newCarouselItem.querySelector(".favourite-button");
-            favBtn.classList.add(`favourite-button-selected`); 
-        }
+    if (breadImgs.length === 0) {
+        let newCarouselItem = Carousel.createCarouselItem(`image_coming_soon_cat.png`, `image coming soon`, `image coming soon`);
+        const favBtn = newCarouselItem.querySelector(".favourite-button");
+        favBtn.remove();
         Carousel.appendCarousel(newCarouselItem);
-    });
+    } else {
+        breadImgs.forEach(it => {
+            let url = null;
+            let id = null;
+            if (it.url) {
+                url = it.url;
+                id = it.id;
+            } else {
+                url = it.image.url;
+                id = it.image.id;
+            }
+            let newCarouselItem = Carousel.createCarouselItem(url, `Image of ${breedObj.name} cat`, id);
+            if (favorites.find(it => it.image.id === id)) { //this is a favorite image
+                let favBtn = newCarouselItem.querySelector(".favourite-button");
+                favBtn.classList.add(`favourite-button-selected`);
+            }
+            Carousel.appendCarousel(newCarouselItem);
+        });        
+    }
     infoDump.innerHTML = `<h2>${breedObj.name}</h2><p>${breedObj.description}</p>`;
     Carousel.start();
 }
@@ -150,7 +157,7 @@ function updateProgress(progressEvent) {
 
 
 function breedSelectEvent(ev) {
-    isFavoritePage = false; 
+    isFavoritePage = false;
     axiosBreed(breads.find(it => it.id === ev.target.value));
 }
 
@@ -227,7 +234,7 @@ function favoritesSelectEvent(ev) {
  *   you delete that favourite using the API, giving this function "toggle" functionality.
  * - You can call this function by clicking on the heart at the top right of any image.
  */
-export async function favourite(imgId,target) {
+export async function favourite(imgId, target) {
     //console.log(`Fav button clicked ${imgId}`);
     //checking if the image is already in favorites or not
     let fav = favorites.find(it => it.image.id === imgId);
@@ -247,7 +254,7 @@ export async function favourite(imgId,target) {
             );
             favorites = favorites.filter(it => it.image.id !== imgId);
             target.classList.remove(`favourite-button-selected`);
-            if (isFavoritePage){
+            if (isFavoritePage) {
                 axiosFavorites(USER_NAME); // repopulating the carousel
             }
         } catch (error) {
