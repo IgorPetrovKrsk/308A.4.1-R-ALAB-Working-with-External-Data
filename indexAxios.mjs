@@ -12,9 +12,12 @@ const getFavouritesBtn = document.getElementById("getFavouritesBtn");
 
 // Step 0: Store your API key here for reference and easy access.
 const API_KEY = "live_UiYOtzJxYjaOcMznmcDsCQWt40ZtbTnzJfK79kFocCstrGVSPTv8rIMbVsmsuNz3";
+const USER_NAME = "test_user";
 
 let breads = []; // Array to store information about the breeds
+let favorites = []; // array to store img id of favorites
 let requestStartTime = null;
+let isFavoritePage = false;
 
 /**
  * 1. Create an async function "initialLoad" that does the following:
@@ -25,13 +28,82 @@ let requestStartTime = null;
  * This function should execute immediately.
  */
 
+(function initializeInterceptors() { //inisilising interceptors BEFORE the initial iife
+    //adiing interceptors 
+    axios.interceptors.request.use(it => {
+        requestStartTime = Date.now();
+        console.log(`Request started at ${Date(requestStartTime)}`);
+        progressBar.style.width = `0%`;
+        document.body.style.cursor = `progress`; // part 7 
+        return it;
+    })
+    axios.interceptors.response.use(it => {
+        let requestEndTime = Date.now();
+        console.log(`Response recieved at ${Date(requestEndTime)} and query time is ${requestEndTime - requestStartTime} ms`);
+        document.body.style.cursor = `default`; // part 7 
+        return it;
+    })
+})();
+
+(async function initialLoadWithFetch() { //iife
+    try {
+        axios.defaults.baseURL = "https://api.thecatapi.com/v1/";
+        let favResponse = axios.get(`favourites`,
+            {
+                headers: {
+                    "x-api-key": API_KEY
+                },
+                params: {
+                    attach_image: 1,
+                    sub_id: USER_NAME
+                }
+            }
+        );
+        let response = axios({
+            method: "GET",
+            url: "breeds",
+            onDownloadProgress: updateProgress
+        });
+        [favResponse, response] = await Promise.all([favResponse, response]); // promise.all to fetch cats and favorites at the same time in parallel
+        favorites = favResponse.data; // storing favorites in the array
+        if (response.status === 200) {
+            breads = response.data;
+        } else {
+            throw new Error("Failed to fetch breeds");
+        }
+        breads.forEach(it => {
+            let newOption = document.createElement("option");
+            newOption.value = it.id;
+            newOption.textContent = it.name;
+            breedSelect.appendChild(newOption);
+        });
+        axiosBreed(breads[0]); // fetching first element and population carousel
+    } catch (error) {
+        console.error(`Error geting breads: ${error}`);
+    }
+})();
+
 breedSelect.addEventListener(`change`, breedSelectEvent);
+getFavouritesBtn.addEventListener(`click`, favoritesSelectEvent);
 
 function populateCarousel(breadImgs, breedObj) {
     Carousel.clear();
     infoDump.innerHTML = ``;
     breadImgs.forEach(it => {
-        let newCarouselItem = Carousel.createCarouselItem(it.url, `Image of ${breedObj.name} cat`, it.id);
+        let url = null;
+        let id = null;
+        if (it.url) {
+            url = it.url;
+            id = it.id;
+        } else {
+            url = it.image.url;
+            id = it.image.id;        
+        }
+        let newCarouselItem = Carousel.createCarouselItem(url, `Image of ${breedObj.name} cat`, id);
+        if (favorites.find(it => it.image.id === id)){ //this is a favorite image
+            let favBtn = newCarouselItem.querySelector(".favourite-button");
+            favBtn.classList.add(`favourite-button-selected`); 
+        }
         Carousel.appendCarousel(newCarouselItem);
     });
     infoDump.innerHTML = `<h2>${breedObj.name}</h2><p>${breedObj.description}</p>`;
@@ -48,65 +120,46 @@ async function axiosBreed(bread) {
                 limit: 5,
                 breed_id: bread.id
             },
-            onDownloadProgress : updateProgress
+            onDownloadProgress: updateProgress
         }
     );
     populateCarousel(breadImgs.data, bread);
 }
 
-function updateProgress(progressEvent) {
-    progressBar.style.width = `${progressEvent.progress*100}%`;
+async function axiosFavorites(userName) {
+    //because favorites should be loaded at start
+    // let breadImgs = await axios.get(`favourites`,
+    //     {
+    //         headers: {
+    //             "x-api-key": API_KEY
+    //         },
+    //         params: {
+    //             attach_image: 1,
+    //             sub_id: userName
+    //         },
+    //         onDownloadProgress: updateProgress
+    //     }
+    // );
+    populateCarousel(favorites, { name: `Favourites`, description: `Your favourite cats` });
 }
 
-(function initializeInterceptors() {
-    //adiing interceptors 
-    axios.interceptors.request.use(it => {
-        requestStartTime = Date.now();
-        console.log(`Request started at ${Date(requestStartTime)}`);
-        progressBar.style.width = `0%`;       
-        document.body.style.cursor = `progress`; // part 7 
-        return it;
-    })
-    axios.interceptors.response.use(it => {
-        let requestEndTime = Date.now();
-        console.log(`Response recieved at ${Date(requestEndTime)} and query time is ${requestEndTime - requestStartTime} ms`);        
-        document.body.style.cursor = `default`; // part 7 
-        return it;
-    })
-})();
+function updateProgress(progressEvent) {
+    progressBar.style.width = `${progressEvent.progress * 100}%`;
+}
+
+
 
 function breedSelectEvent(ev) {
+    isFavoritePage = false; 
     axiosBreed(breads.find(it => it.id === ev.target.value));
 }
 
-(async function initialLoadWithFetch() { //iife
-    try {
-        axios.defaults.baseURL = "https://api.thecatapi.com/v1/";
-        let response = await axios({
-            method: "GET",
-            url: "breeds",
-            onDownloadProgress : updateProgress
-        });
-        if (response.status === 200) {
-            breads = response.data;
-        } else {
-            throw new Error("Failed to fetch breeds");
-        }
-        breads.forEach(it => {
-            let newOption = document.createElement("option");
-            newOption.value = it.id;
-            newOption.textContent = it.name;
-            breedSelect.appendChild(newOption);
-        });
-        axiosBreed(breads[0]); // fetching first element and population carousel
-    } catch (error) {
-        console.error(`Error geting breads: ${error}`);
-    }
-
-    
+function favoritesSelectEvent(ev) {
+    isFavoritePage = true;
+    axiosFavorites(USER_NAME);
+}
 
 
-})();
 
 /**
  * 2. Create an event handler for breedSelect that does the following:
@@ -174,8 +227,62 @@ function breedSelectEvent(ev) {
  *   you delete that favourite using the API, giving this function "toggle" functionality.
  * - You can call this function by clicking on the heart at the top right of any image.
  */
-export async function favourite(imgId) {
-    // your code here
+export async function favourite(imgId,target) {
+    //console.log(`Fav button clicked ${imgId}`);
+    //checking if the image is already in favorites or not
+    let fav = favorites.find(it => it.image.id === imgId);
+    if (fav !== undefined) { //this image is already in favorites so delet
+        try {
+            await axios.delete(`favourites/${fav.id}`,
+                // {
+                //     "image_id": imgId,
+                //     "sub_id": USER_NAME
+                // },
+                {
+                    headers: {
+                        "x-api-key": API_KEY
+                    },
+
+                }
+            );
+            favorites = favorites.filter(it => it.image.id !== imgId);
+            target.classList.remove(`favourite-button-selected`);
+            if (isFavoritePage){
+                axiosFavorites(USER_NAME); // repopulating the carousel
+            }
+        } catch (error) {
+            console.error(`Error deleting favourite: ${error}`);
+        }
+    } else { //adding
+        try {
+            let favId = await axios.post(`favourites`,
+                {
+                    "image_id": imgId,
+                    "sub_id": USER_NAME
+                },
+                {
+                    headers: {
+                        "x-api-key": API_KEY
+                    },
+
+                }
+            );
+            favId = favId.data.id; // this is the Unique id of the favorite image (store it so that we can delet it)
+            favorites.push({ //just pushing new image to local favorites so that we should not get it again then displaing favorites
+                "id": favId,
+                "image_id": imgId,
+                "sub_id": USER_NAME,
+                "image": { //this is `image` object
+                    id: imgId,
+                    url: `https://cdn2.thecatapi.com/images/${imgId}.jpg`
+                }
+            });
+            target.classList.add(`favourite-button-selected`);
+        } catch (error) {
+            console.error(`Error adding favourite: ${error}`);
+        }
+    }
+
 }
 
 /**

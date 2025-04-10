@@ -35,6 +35,9 @@ body {
   top: 7px;
   right: 12px;
 }
+.favourite-button-selected {
+  color: darkred;
+}
 
 .carousel-inner {
   padding: 1em;
