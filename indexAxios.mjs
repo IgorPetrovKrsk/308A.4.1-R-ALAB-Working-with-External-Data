@@ -63,12 +63,14 @@ function updateProgress(progressEvent) {
     axios.interceptors.request.use(it => {
         requestStartTime = Date.now();
         console.log(`Request started at ${Date(requestStartTime)}`);
-        progressBar.style.width = `0%`;
+        progressBar.style.width = `0%`;       
+        document.body.style.cursor = `progress`; // part 7 
         return it;
     })
     axios.interceptors.response.use(it => {
         let requestEndTime = Date.now();
         console.log(`Response recieved at ${Date(requestEndTime)} and query time is ${requestEndTime - requestStartTime} ms`);        
+        document.body.style.cursor = `default`; // part 7 
         return it;
     })
 })();
